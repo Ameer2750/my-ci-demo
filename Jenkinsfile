@@ -3,7 +3,7 @@ pipeline {
 
     environment {
         IMAGE_NAME = 'my-react-app'
-        DOCKER_REGISTRY = 'vellaiameer'
+        DOCKER_REGISTRY = 'vellaiameer' // Use this if pushing to Docker Hub later
     }
 
     stages {
@@ -16,19 +16,30 @@ pipeline {
         stage('Build Docker Image') {
             steps {
                 script {
-                    docker.build("${DOCKER_REGISTRY}/${IMAGE_NAME}")
+                    dockerImage = docker.build("${DOCKER_REGISTRY}/${IMAGE_NAME}")
                 }
             }
         }
 
-        stage('Run container') {
+        stage('Run Container') {
             steps {
                 script {
-                    docker.image("${DOCKER_REGISTRY}/${IMAGE_NAME}").run('-p 3000:80')
+                    // Stop existing container if it exists
+                    sh "docker rm -f ${IMAGE_NAME} || true"
+
+                    // Run the new container
+                    dockerImage.run("-d -p 3000:80 --name ${IMAGE_NAME}")
                 }
             }
         }
+    }
 
-        
+    post {
+        failure {
+            echo "Build failed ❌"
+        }
+        success {
+            echo "Build & container run successful ✅"
+        }
     }
 }
