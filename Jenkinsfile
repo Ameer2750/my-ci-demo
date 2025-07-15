@@ -21,14 +21,33 @@ pipeline {
             }
         }
 
-        stage('Run Container') {
+        stage('Login to Docker Hub') {
+            steps {
+                withCredentials([usernamePassword(
+                    credentialsId: '25dad33c-63be-43ed-97e2-31c54f7a9cf1',
+                    usernameVariable: 'DOCKER_USER',
+                    passwordVariable: 'DOCKER_PASS'
+                    )]) {
+                        sh 'echo "$DOCKER_PASS" | docker login -u "$DOCKER_USER" --password-stdin'
+                    }
+            }
+        }
+
+
+        stage('Push Docker Image') {
             steps {
                 script {
-                    // Stop existing container if it exists
-                    sh "docker rm -f ${IMAGE_NAME} || true"
+                    dockerImage.push()
+                }
+            }
+        }
 
-                    // Run the new container
-                    dockerImage.run("-d -p 3000:80 --name ${IMAGE_NAME}")
+
+        stage('Run Docker container') {
+            steps {
+                script {
+                    sh "docker rm -f ${IMAGE_NAME} || true"
+                    docker.image("${DOCKER_REGISTRY}/${IMAGE_NAME}:latest").run("-d -p 3000:80 --name ${IMAGE_NAME}")
                 }
             }
         }
